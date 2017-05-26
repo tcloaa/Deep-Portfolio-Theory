@@ -27,4 +27,13 @@ Proceed ([y]/n)? y
 
 ```
 
-# data (tb download)
+# data
+
+# importance
+
+* We train our learner without knowledge of the componentweights.
+
+# DL structure
+
+* auto-encoder: 1 hidden layer with 5 neurons
+* dl routine: 1 hidden layer with 5 neurons
