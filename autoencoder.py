@@ -37,7 +37,7 @@ for test_data
     83 row: stock
     122 column: date    
 '''
-#%%
+
 encoding_dim = 5 # 5 neurons
 
 input_img = Input(shape=(104,))
@@ -55,17 +55,60 @@ decoder = Model(encoded_input, decoder_layer(encoded_input))
 
 autoencoder.compile(loss='mean_squared_error', optimizer='sgd')
 
-#%%
 
 # train autoencoder
 train_np = train_data.as_matrix()
-autoencoder.fit(train_np, train_np, epochs=100)
+autoencoder.fit(train_np, train_np, epochs=1000)
 
 #%%
 
 # predict result
 encoded_imgs = encoder.predict(train_np)
 decoded_imgs = decoder.predict(encoded_imgs)
+
+#%%
+
+# 2 norm difference
+communal_information = []
+
+for i in range(0,83):
+    '''
+    stock_2norm = np.linalg.norm(train_np[i,:])
+    auto_2norm = np.linalg.norm(decoded_imgs[i,:])
+    communal_information.append(float(abs(stock_2norm - auto_2norm)))
+    '''
+    difference = np.linalg.norm((train_np[i,:]-decoded_imgs[i,:]))
+    communal_information.append(float(difference))
+ 
+#%%     
+
+'''
+AMGN: should be the highest communal stock
+BCRX: should be the lowest commnual stock
+
+10 most communal stocks + x most non-communal stocks
+'''
+
+stock_to_rank = np.array(communal_information).argsort()
+
+for i in stock_to_rank:
+    print(train_data.iloc[i,:].name) #print stock name from lowest to highest
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
