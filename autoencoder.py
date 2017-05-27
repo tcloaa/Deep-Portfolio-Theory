@@ -6,6 +6,8 @@ Created on Thu May 25 16:12:35 2017
 @author: phil
 """
 
+
+
 #%%
 import numpy as np
 import pandas as pd
@@ -115,29 +117,66 @@ last_price = full_last_price.drop(["Unnamed: 0"]).dropna(axis=0, how='any').asty
 train_last_price = last_price.iloc[0:, 0:104] # 2012.01 ~ 2013.12
 
 #%%
-which_stock = 38
+which_stock = 22
 
-tlgt_origin = pd.Series(train_last_price.iloc[which_stock,0:].as_matrix(), index=pd.date_range(start='01/06/2012', periods=104, freq='W'))
-tlgt_origin.plot()
+stock_origin = pd.Series(train_last_price.iloc[which_stock,0:].as_matrix(), index=pd.date_range(start='01/06/2012', periods=104, freq='W'))
+stock_origin.plot()
 
 # now predict price
-tlgt_autoencoder = []
+stock_autoencoder = []
 price = 0
 for i in range(0,104):
     if i == 0:
         price = train_last_price.iloc[which_stock,0]
     else:
         price = price + decoded_imgs[which_stock,i]
-    tlgt_autoencoder.append(price)
+    stock_autoencoder.append(price)
 
     
-tlgt_autoencoder = pd.Series(tlgt_autoencoder, index=pd.date_range(start='01/06/2012', periods = 104,freq='W'))
-tlgt_autoencoder.plot()
+stock_autoencoder = pd.Series(stock_autoencoder, index=pd.date_range(start='01/06/2012', periods = 104,freq='W'))
+stock_autoencoder.plot()
+#%%
+
+'''
+Calibration Phase
+    1. load ibb last_price (will do ibb modification in next .py)
+    2. plot ibb last_price
+    3. infer the weight for S25, S45, S65
+    4. plot portfolio price
+
+'''
+
+# Step 1 & 2
+full_ibb = pd.read_csv('full_data/ibb_uq.csv', header=0).T # date index: 0 ~ 225
+ibb_last_price = full_ibb.iloc[1,:].astype('float') # all last price
+ibb_last_train = ibb_last_price.iloc[0:104]
+ibb_last_test = ibb_last_price.iloc[104:226]
+
+ibb_plot_train_origin = pd.Series(np.array(ibb_last_train), index=pd.date_range(start='01/06/2012', periods=104, freq='W'))
+ibb_plot_train_origin.plot()
+
+#%%
 
 
 
 
 
+
+#%%
+
+'''
+Validation Phase
+    1. load ibb last_price (will do ibb modification in next .py)
+    2. plot ibb last_price
+    3. use infered weight to re-track ibb index
+    3. plot portfolio price
+'''
+
+#%%
+
+'''
+Verification Phase: Deep Frontier
+'''
 
 
 
