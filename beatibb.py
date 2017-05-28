@@ -36,6 +36,10 @@ ibb_net = ibb.iloc[2,:].astype('float32') # all net change
 ibb_net_train = ibb_net.iloc[0:104]
 ibb_net_test = ibb_net.iloc[104:208]
 
+ibb_per = ibb.iloc[3,:].astype('float64') # all percentage change
+ibb_per_train = ibb_per.iloc[0:104]
+ibb_per_test = ibb_per.iloc[104:208]
+
 
 ## load stock last price
 stock_lp = pd.read_csv('full_data/last_price.csv', header=0).T.drop(["Unnamed: 0"]).dropna(axis=0, how='any').astype('float32') # inlcude date
@@ -122,6 +126,27 @@ Here x = 15, 35, 55,
 so S25, S45, S65
 '''
 
+'''
+# modify calibration target
+smaller_index = [ n for n,i in enumerate(ibb_per_train.as_matrix()) if i<-5 ] # only #92 in this dataset
+for i in smaller_index:
+    ibb_net_train.iloc[i] = ibb_lp_train.iloc[i-1]*0.05
+
+ibb_modify = []
+price = 0
+
+for i in range(0,104):
+    if i == 0:
+        price = ibb_lp[0] # 2012.1.6 last price
+    else:
+        price = price + ibb_net_train.as_matrix()[i]
+        
+    ibb_modify.append(price) 
+'''
+
+pd.Series(ibb_lp_train.as_matrix(), index=pd.date_range(start='01/06/2012', periods=104, freq='W')).plot(label='ibb original', legend=True) 
+pd.Series(ibb_modify, index=pd.date_range(start='01/06/2012', periods=104, freq='W')).plot(label='ibb modify', legend=True)   
+#%%
 # train deep learner model for S25, S45, S65
 for x in [15,35,55]:
     x = 55
