@@ -153,7 +153,6 @@ Phase 3: Validation
     3. plot portfolio price
 '''
 
-port_lp_test = stock_net_test.iloc[port_index, 0:].T # we have S25 here
 port_net_test = stock_net_test.iloc[port_index, 0:].T # we have S25 here
 
 # predict deep-learned ibb net change
@@ -179,6 +178,59 @@ Phase 4: Verification & Deep Frontier
 x-axis: 2-norm error
 y-axis: # of stocks, 60, 40, 20
 '''
+
+error = []
+for x in range(15,61):
+
+    # 10 commnual + x non-communal
+    s = x+10 
+    port_index = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x:])) # portfolio index
+    port_lp_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
+    port_net_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
+    
+    # deep learner model
+    portfolio = Input(shape=(s,)) # row: 104 dates, column: 10+x stocks
+    learner_hidden = Dense(encoding_dim, activation='relu', activity_regularizer=regularizers.l1(10e-5))(portfolio)
+    learner_output = Dense(1, activation='linear', activity_regularizer=regularizers.l1(10e-5))(learner_hidden) # output layer
+    deep_learner = Model(portfolio, learner_output)
+    deep_learner.compile(loss='mean_squared_error', optimizer='sgd')
+    deep_learner.fit(port_net_train.as_matrix(), ibb_net_train.as_matrix(), epochs=5000) # ??? f(stock_net) = ibb_net
+    
+    
+    # test on test
+    port_net_test = stock_net_test.iloc[port_index, 0:].T # we have S25 here
+    ibb_learner_net_test = deep_learner.predict(port_net_test.as_matrix())# predict deep-learned ibb net change
+    # calculate deep-learned ibb last price
+    
+    ibb_autoencoder = []
+    price = 0
+    for i in range(0,104):
+        if i == 0:
+            price = ibb_lp[104] # 2014.1.3 last price
+        else:
+            price = price + ibb_learner_net_test[i,0]
+        ibb_autoencoder.append(price)
+
+
+    diff = float(np.linalg.norm((ibb_autoencoder-ibb_lp_test.as_matrix())))
+    error.append(diff) #25, 30, 35, ..., 65        
+
+mse =  [x /104 for x in error] 
+plt.gca().invert_yaxis()
+plt.plot(mse, list(range(15,61)))
+plt.xlabel('Mean Square Error')
+plt.ylabel('number of stocks in portfolio')
+
+
+
+
+
+
+
+
+
+
+
 
 
 
