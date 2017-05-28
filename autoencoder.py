@@ -127,20 +127,10 @@ port_index = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x:])) # portfol
 port_lp_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
 port_net_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
 
-
-# deep learner model
-portfolio = Input(shape=(s,)) # row: 104 dates, column: 10+x stocks
-learner_hidden = Dense(encoding_dim, activation='relu', activity_regularizer=regularizers.l1(10e-5))(portfolio)
-learner_output = Dense(1, activation='linear', activity_regularizer=regularizers.l1(10e-5))(learner_hidden) # output layer
-deep_learner = Model(portfolio, learner_output)
-deep_learner.compile(loss='mean_squared_error', optimizer='sgd')
-
-deep_learner.fit(port_net_train.as_matrix(), ibb_net_train.as_matrix(), epochs=5000) # ??? f(stock_net) = ibb_net
-
+deep_learner = load_model('deep_learner.h5')
 # predict deep-learned ibb net change
 ibb_learner_net_train = deep_learner.predict(port_net_train.as_matrix())
 
-#%%
 # calculate deep-learned ibb last price
 ibb_autoencoder = []
 price = 0
