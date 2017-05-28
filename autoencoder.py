@@ -146,30 +146,39 @@ pd.Series(ibb_lp_train.as_matrix(), index=pd.date_range(start='01/06/2012', peri
 #%%
 
 '''
-Validation Phase
+Phase 3: Validation 
     1. load ibb last_price (will do ibb modification in next .py)
     2. plot ibb last_price
     3. use infered weight to re-track ibb index
     3. plot portfolio price
 '''
 
-ibb_plot_test_origin = pd.Series(np.array(ibb_last_test), index=pd.date_range(start='01/06/2013', periods=104, freq='W'))
-ax= ibb_plot_train_origin.plot()
-ax.set_xlabel('Weekly Date')
-ax.set_ylabel('IBB Last Price')
+port_lp_test = stock_net_test.iloc[port_index, 0:].T # we have S25 here
+port_net_test = stock_net_test.iloc[port_index, 0:].T # we have S25 here
 
+# predict deep-learned ibb net change
+ibb_learner_net_test = deep_learner.predict(port_net_test.as_matrix())
 
-#ibb_learner_test = deep_learner.predict() # plug in S25 test date data
-
+# calculate deep-learned ibb last price
+ibb_autoencoder = []
+price = 0
+for i in range(0,104):
+    if i == 0:
+        price = ibb_lp[104] # 2014.1.3 last price
+    else:
+        price = price + ibb_learner_net_test[i,0]
+    ibb_autoencoder.append(price)
+ 
+pd.Series(ibb_autoencoder, index=pd.date_range(start='01/03/2014', periods = 104,freq='W')).plot(label='ibb auto', legend=True)
+pd.Series(ibb_lp_test.as_matrix(), index=pd.date_range(start='01/03/2014', periods=104, freq='W')).plot(label='ibb origin', legend=True)
 #%%
 
 '''
-Verification Phase: Deep Frontier
+Phase 4: Verification & Deep Frontier
+
+x-axis: 2-norm error
+y-axis: # of stocks, 60, 40, 20
 '''
-
-
-
-
 
 
 
