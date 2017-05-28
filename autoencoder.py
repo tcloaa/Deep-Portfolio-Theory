@@ -88,7 +88,7 @@ Also lowest communal stock (4 92.86773681640625 REGN    US Equity)
 for 1 chosen stock, plot its original price & autoencoded price for comparison
 '''
 
-which_stock = 1
+which_stock = 27
 # original last price plot
 pd.Series(stock_lp_train.iloc[which_stock,0:].as_matrix(), index=pd.date_range(start='01/06/2012', periods=104, freq='W')).plot(label='stock original', legend=True)
 
@@ -121,28 +121,75 @@ Phase 2: Calibration
 Here x = 15, 35, 55, 
 so S25, S45, S65
 '''
-x = 15
-s = x+10
-port_index = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x:])) # portfolio index
-port_lp_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
-port_net_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
 
-deep_learner = load_model('deep_learner.h5')
-# predict deep-learned ibb net change
-ibb_learner_net_train = deep_learner.predict(port_net_train.as_matrix())
+# train deep learner model for S25, S45, S65
+for x in [15,35,55]:
+    x = 55
+    s = x+10
+    port_index = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x:])) # portfolio index
+    port_net_train = stock_net_train.iloc[port_index, 0:].T # we have S25 here
+    
+    portfolio = Input(shape=(s,)) # row: 104 dates, column: 10+x stocks
+    learner_hidden = Dense(encoding_dim, activation='relu', activity_regularizer=regularizers.l1(10e-5))(portfolio)
+    learner_output = Dense(1, activation='linear', activity_regularizer=regularizers.l1(10e-5))(learner_hidden) # output layer
+    deep_learner = Model(portfolio, learner_output)
+    deep_learner.compile(loss='mean_squared_error', optimizer='sgd')
+    deep_learner.fit(port_net_train.as_matrix(), ibb_net_train.as_matrix(), epochs=5000) # ??? f(stock_net) = ibb_net
+    
+    deep_learner.save(('s'+str(s)+'.h5'))
+
+#%%
+s25 = load_model('s25.h5')
+s45 = load_model('s45.h5')
+s65 = load_model('s65.h5')
+
+x1 = 15
+port_index_s25 = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x1:])) # portfolio index
+port_net_train_s25 = stock_net_train.iloc[port_index_s25, 0:].T # we have S25 here
+ibb_learner_net_train_s25 = s25.predict(port_net_train_s25.as_matrix()) # predict deep-learned ibb net change
+
+x2 = 35
+port_index_s45 = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x2:])) # portfolio index
+port_net_train_s45 = stock_net_train.iloc[port_index_s45, 0:].T # we have S25 here
+ibb_learner_net_train_s45 = s45.predict(port_net_train_s45.as_matrix()) # predict deep-learned ibb net change
+
+x3 = 55
+port_index_s65 = np.concatenate((stock_to_rank[0:10], stock_to_rank[-x3:])) # portfolio index
+port_net_train_s65 = stock_net_train.iloc[port_index_s65, 0:].T # we have S25 here
+ibb_learner_net_train_s65 = s65.predict(port_net_train_s65.as_matrix()) # predict deep-learned ibb net change
 
 # calculate deep-learned ibb last price
-ibb_autoencoder = []
-price = 0
+ibb_autoencoder_s25 = []
+price_s25 = 0
+
+ibb_autoencoder_s45 = []
+price_s45 = 0
+
+ibb_autoencoder_s65 = []
+price_s65 = 0
+
 for i in range(0,104):
     if i == 0:
-        price = ibb_lp[0] # 2012.1.6 last price
+        price_s25 = ibb_lp[0] # 2012.1.6 last price
+        price_s45 = ibb_lp[0] # 2012.1.6 last price
+        price_s65 = ibb_lp[0] # 2012.1.6 last price
     else:
-        price = price + ibb_learner_net_train[i,0]
-    ibb_autoencoder.append(price)
+        price_s25 = price_s25 + ibb_learner_net_train_s25[i,0]
+        price_s45 = price_s45 + ibb_learner_net_train_s45[i,0]
+        price_s65 = price_s65 + ibb_learner_net_train_s65[i,0]
+        
+    ibb_autoencoder_s25.append(price_s25)
+    ibb_autoencoder_s45.append(price_s45)
+    ibb_autoencoder_s65.append(price_s65)
  
-pd.Series(ibb_autoencoder, index=pd.date_range(start='01/06/2012', periods = 104,freq='W')).plot(label='ibb auto', legend=True)
-pd.Series(ibb_lp_train.as_matrix(), index=pd.date_range(start='01/06/2012', periods=104, freq='W')).plot(label='ibb origin', legend=True)    
+pd.Series(ibb_autoencoder_s25, index=pd.date_range(start='01/06/2012', periods = 104,freq='W')).plot(label='ibb S25', legend=True)
+pd.Series(ibb_autoencoder_s45, index=pd.date_range(start='01/06/2012', periods = 104,freq='W')).plot(label='ibb S45', legend=True)
+pd.Series(ibb_autoencoder_s65, index=pd.date_range(start='01/06/2012', periods = 104,freq='W')).plot(label='ibb S65', legend=True)
+pd.Series(ibb_lp_train.as_matrix(), index=pd.date_range(start='01/06/2012', periods=104, freq='W')).plot(label='ibb original', legend=True)  
+
+print("S25 2-norm difference: ", np.linalg.norm((ibb_autoencoder_s25-ibb_lp_train.as_matrix()))) 
+print("S45 2-norm difference: ", np.linalg.norm((ibb_autoencoder_s45-ibb_lp_train.as_matrix()))) 
+print("S65 2-norm difference: ", np.linalg.norm((ibb_autoencoder_s65-ibb_lp_train.as_matrix()))) 
 #%%
 
 '''
@@ -180,7 +227,7 @@ y-axis: # of stocks, 60, 40, 20
 '''
 
 error = []
-for x in range(15,61):
+for x in range(15,66):
 
     # 10 commnual + x non-communal
     s = x+10 
@@ -217,12 +264,12 @@ for x in range(15,61):
 
 mse =  [x /104 for x in error] 
 plt.gca().invert_yaxis()
-plt.plot(mse, list(range(15,61)))
+plt.plot(mse, list(range(15,66)))
 plt.xlabel('Mean Square Error')
 plt.ylabel('number of stocks in portfolio')
 
 
-
+#%%
 
 
 
