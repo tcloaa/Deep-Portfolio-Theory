@@ -45,6 +45,7 @@ Python 3, Keras (Tensorflow Backend)
     1. Some stock data are missing (not IPO yet, etc), so for data preprocessing, I ignore all the data without full record during 2012/01/06 to 2016/04/29.
     2. In this notebook I only use **percentage change** as input. I also prepare **net_change, last_price** in the repo if you are interested.
 
-    
+
 ![Stock Percentage Change Data](relative/path/to/image/stock_snapshot.png)
+
 
